@@ -11,13 +11,10 @@ def align_data(series, min_backtest_time=-1):
 	
 # Calculates the Compound Annual Growth Rate of an investment
 def calc_cagr(investment, returns, years):
-	try:
-		cagr = (float(returns) / float(investment))
-		cagr = cagr ** ( 1.0 / float(years) )
-		cagr = cagr - 1.0
-		return cagr
-	except:
-		return 0.0
+	cagr = returns / investment
+	cagr = np.power(cagr, ( 1.0 / years))
+	cagr = cagr - 1.0
+	return cagr
 
 # Generates a series of max draw downs experienced
 def generate_draw_down(data):

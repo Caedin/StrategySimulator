@@ -47,19 +47,16 @@ class Portfolio(object):
 		self.value = np.zeros(self.max_day)
 		
 	# Gets the percentage share of a holding in the portfolio by value
-	def get_holding_percentage(self, symbol):
+	def get_holding_percentage(self, symbol, day):
 		h = self.holdings[symbol]
-		return h.value[self.day]/self.get_net_value(self.day)
+		return h.value[day]/self.value[day]
 
 	# Gets the total value of the portfolio
 	def get_net_value(self, day = None):
 		if day is None:
-			day = self.day
-		try:
-			val = self.value[day]
-		except IndexError:
-			val = 0
-		return val
+			return self.value[-1]
+		else:
+			return self.value[day]
 
 	# Gets the length of the shortest holding
 	def get_max_day(self):
@@ -75,31 +72,19 @@ class Portfolio(object):
 
 	# Updates the investment allocation with new capital.
 	def invest(self, amount_invested, day):
-		self.day = day
-
-		# Update holdings for today before adding any new capital
-		for h in self.holdings:
-			self.holdings[h].update(day)
-		self.value[day] = reduce(np.add, [x.value[day] for x in self.holdings.viewvalues()])
-
-		# Add any outstanding cash to pool
-		if self.cash > 0:
-			amount_invested += self.cash
-			self.cash = 0
-
-
-		total_value = self.get_net_value(day - 1)
-
-		if total_value > 0:
-			investments = dict([(x, self.get_holding_percentage(x) * amount_invested) for x in self.holdings])
-			for h in self.holdings:
-				self.holdings[h].invest(investments[h], day)
-		elif len(self.holdings) > 0:
-			investments = dict([(x, amount_invested / len(self.holdings)) for x in self.holdings])
-			for h in self.holdings:
-				self.holdings[h].invest(investments[h], day)
+		# Calculate investments
+		if self.investment_ratios is None:
+			if self.value[day] > 0:
+				investments = dict([(x, self.get_holding_percentage(x, day) * amount_invested) for x in self.holdings])
+			elif len(self.holdings) > 0:
+				investments = dict([(x, amount_invested / len(self.holdings)) for x in self.holdings])
 		else:
-			self.cash += amount_invested
+			investments = dict([(x, amount_invested * self.investment_ratios[x]) for x in self.holdings])
+
+		for h in self.holdings:
+			self.holdings[h].invest(investments[h], day)
+
+		self.value[day] = reduce(np.add, [x.value[day] for x in self.holdings.viewvalues()])
 
 	def __init__(self, holdings):
 		self.fee = 14
@@ -110,6 +95,8 @@ class Portfolio(object):
 		self.cagr = []
 		self.draw_down = []
 		self.value = []
+		self.trade_count = 0
+		self.investment_ratios = None
 
 		if holdings is not None:
 			self.max_day = reduce(np.min, [len(self.holdings[s].security) for x in self.holdings])

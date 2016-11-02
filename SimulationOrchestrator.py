@@ -22,7 +22,7 @@ parallel_mode = False
 # Sets the caching mode to local or multiprocessing
 def set_multiprocessing_mode():
 	global cache, work, results, parallel_mode
-	from multiprocessing import Manager, Queue as pqueue
+	from multiprocessing import Manager
 	parallel_mode = True
 	# Migrate the cache to the parallel cache
 	man = Manager()
@@ -32,8 +32,8 @@ def set_multiprocessing_mode():
 	cache = multi_cache
 
 	# Migrate the queues to the parallel queues
-	pwork = pqueue()
-	presults = pqueue()
+	pwork = man.Queue()
+	presults = man.Queue()
 
 	while work.empty() == False:
 		pwork.put(work.get())
@@ -111,6 +111,7 @@ def generate_dataset(parameters):
 	securities = [Security(parameters['primary'], leverage = parameters['primary_leverage']), parameters['secondary']]
 	portfolio = Portfolio(None)
 	portfolio.generate_new_portfolio(securities)
+	portfolio.investment_ratios = {parameters['primary'] : 1, parameters['secondary'] : 0}
 
 	moving_average = Security(parameters['primary'])
 	moving_average.set_data(parameters['primary'], moving_average.generate_moving_average(parameters['moving_window']))
@@ -123,17 +124,23 @@ def generate_dataset(parameters):
 	strategy = Strategies.Strategy(parameters['rebalancing_function'], params)
 	return portfolio, strategy
 
-def parallel_consume_work(work, result):
+# Function for consuming work from the work queue.
+def parallel_consume_work(work, result, pid):
 	while work.empty() == False:
+		# Get work
 		p = work.get()
+		if work.qsize() % 100 == 0:
+			print 'Estimated work items remaining: ' + str(work.qsize())
 
+		# Execute Simulation
 		portfolio, strategy = generate_dataset(p)
-
 		p['rebalancing_function'] = p['rebalancing_function'].__name__
 		cache_key = json.dumps(p)
 		r = execute_simulation(portfolio, strategy, cache_key)
 
-		result.put((cache_key, r.cagr[-1], min(r.draw_down), r.get_net_value()))
+		# Save results
+		result.put((cache_key, r.cagr[-1], min(r.draw_down), r.trade_count, r.value[-1]))
+		work.task_done()
 
 def consume_results(output, results):
 	print 'Gathering results ' + str(results.qsize()) + ' ...' 
@@ -141,31 +148,35 @@ def consume_results(output, results):
 	c = 0
 	while results.empty() == False:
 		r = results.get()
-		c+=1
 		result_set[c] = r
+		c+=1
 	
 	with open(output, 'w') as outputfile:
 		print 'Savings results ' + str(len(result_set)) + ' ...'
-		for r in result_set.values():
-			outputfile.write(','.join([str(x) for x in r]) + '\n')
+		results = result_set.values()
+		results.sort(key = lambda x: x[-1])
+		results = results[::-1]
+
+		for r in results:
+			param_key = json.loads(r[0])
+			params = []
+			for field in param_key:
+				params.append(str(field) + ':' + str(param_key[field]))
+
+			params.sort(key = lambda x: x)
+			outputfile.write(','.join(params) + ',' + ','.join([str(x) for x in r[1:]]) + '\n')
 
 def batch_simulate(output, parallel = False, cache = True):
+	import multiprocessing
 	from multiprocessing import Process
-
 	global work, results
 
 	if parallel:
 		set_multiprocessing_mode()
-		processes = []
-		for x in xrange(8):
-			p = Process(target = parallel_consume_work, args=(work, results))
-			processes.append(p)
-		for p in processes:
-			print 'Consumption Process Started'
+		for x in xrange(multiprocessing.cpu_count()):
+			p = Process(target = parallel_consume_work, args=(work, results, x))
 			p.start()
-		for p in processes:
-			p.join()
-
+		work.join()
 
 	else:
 		count = 0
@@ -176,9 +187,9 @@ def batch_simulate(output, parallel = False, cache = True):
 
 			p['rebalancing_function'] = p['rebalancing_function'].__name__
 			cache_key = json.dumps(p)
-			result = execute_simulation(portfolio, strategy, cache_key)
+			r = execute_simulation(portfolio, strategy, cache_key)
 
-			results.put((cache_key, result.cagr[-1], min(result.draw_down), result.get_net_value()))
+			results.put((cache_key, r.cagr[-1], min(r.draw_down), r.trade_count, r.value[-1]))
 
 			print count, ' simulations executed'
 

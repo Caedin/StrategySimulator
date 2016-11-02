@@ -17,7 +17,7 @@ def windowed_rebalancing(portfolio, day, parameters):
 	primary_stock_ratio = parameters['stock_holding_ratio']
 	rebalance_window = parameters['rebalance_window']
 
-	first_stock_portfolio_percent = portfolio.get_holding_percentage(primary_stock)
+	first_stock_portfolio_percent = portfolio.get_holding_percentage(primary_stock, day)
 
 	# Rebalance first_stock -> second_stock
 	if first_stock_portfolio_percent > (primary_stock_ratio+rebalance_window):
@@ -46,8 +46,8 @@ def moving_average_rebalancing(portfolio, day, parameters):
 	price = portfolio.get_holding(primary).price(day)
 	ma = parameters['moving_average'].data[day]
 
-	primary_pct = portfolio.get_holding_percentage(primary) 
-	secondary_pct = portfolio.get_holding_percentage(secondary) 
+	primary_pct = portfolio.get_holding_percentage(primary, day) 
+	secondary_pct = portfolio.get_holding_percentage(secondary, day) 
 
 	# Rebalance secondary -> primary
 	if price > ma and secondary_pct > 0.01:
