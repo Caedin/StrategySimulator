@@ -8,7 +8,7 @@ def simulate(portfolio, strategy):
 	refactor_days = 3
 	last_trade_day = 0
 
-	for day in xrange(1, portfolio.get_max_day()):
+	for day in xrange(0, portfolio.get_max_day()):
 		# Update cash balances / invest
 		portfolio.invest(daily_investment, day)
 
@@ -21,8 +21,6 @@ def simulate(portfolio, strategy):
 				last_trade_day = day
 
 	# Calculate some interesting data from the simulation, and return the experiment
-	cagr = [HelperFunctions.calc_cagr(daily_investment * x, portfolio.get_net_value(x), float(x)/252) for x in range(portfolio.get_max_day())]
-	draw_down = HelperFunctions.generate_draw_down([portfolio.get_net_value(x) for x in range(portfolio.get_max_day())])
-	portfolio.cagr = cagr
-	portfolio.draw_down = draw_down
+	portfolio.cagr = [HelperFunctions.calc_cagr(daily_investment * x, portfolio.get_net_value(x), float(x)/252) for x in range(portfolio.get_max_day())]
+	portfolio.draw_down = HelperFunctions.generate_draw_down([portfolio.get_net_value(x) for x in range(portfolio.get_max_day())])
 	return portfolio

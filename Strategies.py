@@ -4,9 +4,10 @@ class Strategy(object):
 		return self.function(portfolio, day, self.strategy_parameters)
 
 	# Sets up the strategy with a given function
-	def __init__(self, func, params):
+	def __init__(self, func, params, cache_key = None):
 		self.function = func
 		self.strategy_parameters = params
+		self.cache_key = cache_key
 
 
 # A strategy used for trading based on a deviation of the holding percent from the predefined ratio

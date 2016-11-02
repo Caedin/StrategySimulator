@@ -44,17 +44,22 @@ class Portfolio(object):
 
 		self.holdings = dict([[s.symbol,Holding(s)] for s in securities])
 		self.max_day = np.min([np.size(self.holdings[s].security.data) for s in self.holdings])
+		self.value = np.zeros(self.max_day)
 		
 	# Gets the percentage share of a holding in the portfolio by value
 	def get_holding_percentage(self, symbol):
 		h = self.holdings[symbol]
-		return h.value[self.day]/self.get_net_value()
+		return h.value[self.day]/self.get_net_value(self.day)
 
 	# Gets the total value of the portfolio
 	def get_net_value(self, day = None):
 		if day is None:
 			day = self.day
-		return reduce(np.add, [self.holdings[x].value[day] for x in self.holdings])
+		try:
+			val = self.value[day]
+		except IndexError:
+			val = 0
+		return val
 
 	# Gets the length of the shortest holding
 	def get_max_day(self):
@@ -75,13 +80,16 @@ class Portfolio(object):
 		# Update holdings for today before adding any new capital
 		for h in self.holdings:
 			self.holdings[h].update(day)
+		self.value[day] = reduce(np.add, [x.value[day] for x in self.holdings.viewvalues()])
 
 		# Add any outstanding cash to pool
 		if self.cash > 0:
 			amount_invested += self.cash
 			self.cash = 0
 
-		total_value = self.get_net_value()
+
+		total_value = self.get_net_value(day - 1)
+
 		if total_value > 0:
 			investments = dict([(x, self.get_holding_percentage(x) * amount_invested) for x in self.holdings])
 			for h in self.holdings:
@@ -101,9 +109,11 @@ class Portfolio(object):
 		self.cash = 0
 		self.cagr = []
 		self.draw_down = []
+		self.value = []
 
 		if holdings is not None:
 			self.max_day = reduce(np.min, [len(self.holdings[s].security) for x in self.holdings])
+			self.value = np.zeros(self.max_day)
 
 
 

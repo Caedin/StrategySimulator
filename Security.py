@@ -88,4 +88,3 @@ class Security(object):
 
 			if leverage > 1:
 				self.data = self.generate_leveraged_data(leverage)
-				self.symbol = self.symbol + ' ' + str(leverage) + 'X'
