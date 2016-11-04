@@ -18,7 +18,6 @@ def calc_cagr(investment, returns, years):
 
 # Generates a series of max draw downs experienced
 def generate_draw_down(data):
-	data = data[1:]
 	max = panda.rolling_max(np.asarray(data), len(data), min_periods = 1)
 	draw_down = (data - max) / max
 	return draw_down

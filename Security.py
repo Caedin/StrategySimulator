@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as panda
+import urllib
 
 # global cache for loading security objects
 raw_data_dictionary = {}
@@ -9,7 +10,7 @@ class Security(object):
 
 	# Helpful string functions
 	def make_url(self, ticker_symbol):
-		return base_url + ticker_symbol
+		return self.base_url + ticker_symbol
 
 	def make_filename(self, ticker_symbol, directory="Stocks"):
 		return self.output_path + "/" + directory + "/" + ticker_symbol + ".csv"
@@ -34,7 +35,8 @@ class Security(object):
 	def get_data(self, stock_file):
 		stock_data = []
 		if stock_file in raw_data_dictionary:
-			return raw_data_dictionary[stock_file].data
+			from copy import deepcopy
+			return deepcopy(raw_data_dictionary[stock_file])
 		else:
 			with open(stock_file, 'rb') as input:
 				input.next()
@@ -49,7 +51,7 @@ class Security(object):
 					stock_data = stock_data[::-1]
 		
 			stock_data = stock_data[::-1]
-			raw_data_dictionary[stock_file] = self
+			raw_data_dictionary[stock_file] = stock_data
 			return stock_data
 
 	# Returns a leveraged version of this security
@@ -66,7 +68,10 @@ class Security(object):
 
 	# Generates a moving average for the security
 	def generate_moving_average(self, window_size):
-		return panda.rolling_mean(np.asarray(self.data), window_size, min_periods = 1)
+		if window_size > 1:
+			return panda.rolling_mean(np.asarray(self.data), window_size, min_periods = 1)
+		else:
+			return np.asarray(self.data)
 
 	# Sets the data series and symbol for this security
 	def set_data(self, symbol, data):

@@ -70,24 +70,35 @@ class Portfolio(object):
 	def set_rebalance(self, bool):
 		self.rebalance = bool
 
+	def set_investments(self, amount, ratios):
+		self.investment_ratios = ratios
+		self.investments = dict([(x, amount * self.investment_ratios[x]) for x in self.holdings])
+
 	# Updates the investment allocation with new capital.
 	def invest(self, amount_invested, day):
-		# Calculate investments
-		if self.investment_ratios is None:
-			if self.value[day] > 0:
-				investments = dict([(x, self.get_holding_percentage(x, day) * amount_invested) for x in self.holdings])
-			elif len(self.holdings) > 0:
-				investments = dict([(x, amount_invested / len(self.holdings)) for x in self.holdings])
-		else:
-			investments = dict([(x, amount_invested * self.investment_ratios[x]) for x in self.holdings])
+		if self.cash > 0:
+			amount_invested += self.cash
+			self.cash = 0
 
-		for h in self.holdings:
-			self.holdings[h].invest(investments[h], day)
+		if amount_invested != self.daily_investment or self.daily_investment is None:
+			# Calculate investments
+			if self.investment_ratios is None:
+				if self.value[day] > 0:
+					self.investments = dict([(x, self.get_holding_percentage(x, day) * amount_invested) for x in self.holdings])
+				elif len(self.holdings) > 0:
+					self.investments = dict([(x, amount_invested / len(self.holdings)) for x in self.holdings])
+			else:
+				self.investments = dict([(x, amount_invested * self.investment_ratios[x]) for x in self.holdings])
+			self.daily_investment = amount_invested
+
+		
+		for i in self.investments:
+			self.holdings[i].invest(self.investments[i], day)
 
 		self.value[day] = reduce(np.add, [x.value[day] for x in self.holdings.viewvalues()])
 
 	def __init__(self, holdings):
-		self.fee = 14
+		self.fee = 0
 		self.daily_investment = 10
 		self.rebalance = True
 		self.holdings = holdings
@@ -97,6 +108,7 @@ class Portfolio(object):
 		self.value = []
 		self.trade_count = 0
 		self.investment_ratios = None
+		self.investments = None
 
 		if holdings is not None:
 			self.max_day = reduce(np.min, [len(self.holdings[s].security) for x in self.holdings])
