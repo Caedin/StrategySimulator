@@ -10,6 +10,7 @@ from ParameterPool import ParameterPool
 from Security import Security
 from Portfolio import Portfolio
 from Holding import Holding
+from RandomSampler import RandomSampler
 
 from Queue import Queue
 
@@ -64,24 +65,22 @@ def generate_chart_moving_average():
 	parameters['secondary'] = raw_input("Enter Stock 2: ")
 	parameters['primary_leverage']  = float(raw_input("Stock 1 Leverage: "))
 	parameters['moving_window'] = int(raw_input("Enter moving average window in days: "))
-	if parameters['primary_leverage'] != 1:
-		parameters['leveraged_moving_average'] = raw_input('Leveraged Moving Average? [True, False]: ')
-	else:
-		parameters['leveraged_moving_average'] = False
+	parameters['sample'] = raw_input('Random Sampling? [True, False]: ')
 
 	securities = [Security(parameters['primary'], leverage = parameters['primary_leverage']), parameters['secondary']]
 	portfolio = Portfolio(None)
 	portfolio.generate_new_portfolio(securities)
-	portfolio.set_investments(10, {parameters['primary'] : 1, parameters['secondary'] : 0})
+	portfolio.set_investments(0, {parameters['primary'] : 1, parameters['secondary'] : 0})
+	portfolio.cash = 10000
 
-	if parameters['leveraged_moving_average'] == 'True':
-		moving_average = Security(parameters['primary'], leverage = parameters['primary_leverage'])
-		moving_average_base = Security(parameters['primary'], leverage = parameters['primary_leverage'])
-	else:
-		moving_average = Security(parameters['primary'])
-		moving_average_base = Security(parameters['primary'])
+	if parameters['sample'] == 'True':
+		sampler = RandomSampler(portfolio.holdings[parameters['primary']].security)
+		portfolio.holdings[parameters['primary']].security.data = sampler.sample
 
-	moving_average.set_data(parameters['primary'], moving_average.generate_moving_average(parameters['moving_window']))
+
+	moving_average = Security(parameters['primary'])
+	moving_average_base = portfolio.holdings[parameters['primary']].security
+	moving_average.set_data(parameters['primary'], portfolio.holdings[parameters['primary']].security.generate_moving_average(parameters['moving_window']))
 
 	params = {}
 	params['primary'] = parameters['primary']
@@ -167,7 +166,8 @@ def generate_dataset(parameters, func):
 		securities = [Security(parameters['primary'], leverage = parameters['primary_leverage']), parameters['secondary']]
 		portfolio = Portfolio(None)
 		portfolio.generate_new_portfolio(securities)
-		portfolio.set_investments(10, {parameters['primary'] : 1, parameters['secondary'] : 0})
+		portfolio.set_investments(0, {parameters['primary'] : 1, parameters['secondary'] : 0})
+		portfolio.cash = 10000
 
 		if parameters['leveraged_moving_average'] in [True, 'True']:
 			moving_average = Security(parameters['primary'], leverage = parameters['primary_leverage'])

@@ -4,11 +4,12 @@ import numpy as np
 # runs a simulation using the provided portfolio and rebalancing method
 def simulate(portfolio, strategy):
 	day = 0
-	daily_investment = 10
+	daily_investment = 0
 	trade_count = 0
 	refactor_days = 3
 	last_trade_day = 0
 	max_day = portfolio.get_max_day()
+	starting_cash = portfolio.cash
 
 	for day in xrange(0, max_day):
 		# Update cash balances / invest
@@ -24,7 +25,7 @@ def simulate(portfolio, strategy):
 
 	# Calculate some interesting data from the simulation, and return the experiment
 	years = np.arange(0, max_day, 1) / 252.0
-	portfolio.cagr = HelperFunctions.calc_cagr(np.arange(daily_investment, (max_day+1) * daily_investment, daily_investment), portfolio.value, years)
+	portfolio.cagr = HelperFunctions.calc_cagr(np.ones(max_day) * starting_cash, portfolio.value, years)
 	portfolio.draw_down = HelperFunctions.generate_draw_down(portfolio.value)
 	portfolio.trade_count = trade_count
 	return portfolio

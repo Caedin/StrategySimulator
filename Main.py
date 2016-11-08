@@ -34,5 +34,6 @@ def run_windowed_rebalancing_simulations(output_file = 'windowed_rebalancing.csv
 	print timer() - t
 
 if __name__ == '__main__':
-	run_moving_average_simulations()
-	run_windowed_rebalancing_simulations()
+	#run_moving_average_simulations()
+	#run_windowed_rebalancing_simulations()
+	SimulationOrchestrator.generate_chart_moving_average()

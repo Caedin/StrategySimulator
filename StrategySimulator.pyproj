@@ -42,6 +42,9 @@
     <Compile Include="Portfolio.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="RandomSampler.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Security.py">
       <SubType>Code</SubType>
     </Compile>
